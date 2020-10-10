@@ -1,0 +1,61 @@
+/* 
+ * Date Created: 09.23.2020
+ * 
+ */
+
+.module-subnav {
+	width: 100%;
+	margin:15px 0 0;
+}
+.module-subnav #sddm .encounter-form-category-li > div {
+	width: 225px;
+}
+.module-subnav #sddm .encounter-form-category-li > div table {
+	padding: 0 0;
+	margin: 0 0;
+	width: 100%;
+	background: transparent;
+}
+.module-subnav #sddm .encounter-form-category-li > div a {
+	display: block;
+	width: 100%;
+	padding: 5px 10px;
+}
+
+.field-group-wrapper {
+	padding:20px 10px;
+}
+.field-heading {
+	border-bottom: 1px solid #000;
+	padding-bottom: 5px;
+	margin-bottom: 15px;
+	font-size: 18px;
+	font-weight: bold;
+}
+
+.form-checkbox-field label {
+	display: block;
+	width: 100%;
+	padding-left: 0!important;
+	padding-right: 0!important;
+}
+
+.form-checkbox-field strong,
+.form-checkbox-field .span-field-group,
+.form-checkbox-field .option-field   {
+	display: inline-block;
+	position: relative;
+}
+.form-checkbox-field .option-field {
+	font-weight: normal;
+	margin-right: 15px;
+}
+.form-checkbox-field .option-field input {
+	margin: 0 0;
+	position: relative;
+	top: 1px;
+}
+
+.field-group-wrapper .form-group {
+	margin-bottom: 10px!important;
+}

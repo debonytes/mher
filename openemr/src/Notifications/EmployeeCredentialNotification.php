@@ -1,0 +1,316 @@
+<?php
+/**
+ * Employee Credential Notification
+ *
+ * @author	  J. Alvin Harris <jalvin.code@gmail.com>
+ * @author	  Sherwin Gaddis <>
+ *
+ * This class sends a notification to any user who's ICANS, Car Ins, or License 
+ * is about to expire. An email is sent when the alert period is entered and 
+ * another when the credential actually expires
+ */
+
+namespace OpenEMR\Notifications;
+
+//use PHPMailerOAuthGoogle;
+use PHPMailer\PHPMailer\PHPMailer;
+use OpenEMR\Common\Crypto\CryptoGen;
+
+class EmployeeCredentialNotification extends NotificationBase
+{
+    public function __construct()
+    {
+		// nothing for now
+    }
+	
+	/****************************************
+	 * RUN
+	 * Send all neccessary emails for credential expirations to users
+	 ****************************************/
+	public function run()
+	{
+		if ($GLOBALS['user_credential_expiration_lockout'] or $GLOBALS['credential_expiration_alert'] >= 0)
+		{
+			// get all users
+			$query = "SELECT * FROM users WHERE username != '' AND active = '1' ORDER BY username";
+			$res   = sqlStatement($query);
+			for ($iter = 0; $row = sqlFetchArray($res); $iter++) 
+			{
+				$all_users[$iter] = $row;
+			}			
+			
+			// cycle through each user
+			// check if any credentials are about to expire
+			foreach ($all_users as $user) 
+			{
+				// variables for detrmining if expiring soon or today	
+				$ICANSExpSoon = false;
+				$CarInsExpSoon = false;
+				$LicenseExpSoon = false;
+				$ICANSExpToday = false;
+				$CarInsExpToday = false;
+				$LicenseExpToday = false;
+
+				// expiration dates
+				$ICANSExpDate   = "";
+				$carInsExpDate  = "";
+				$licenseExpDate = "";
+				
+				// OBTAIN ALL EXPIRATION DATES AND OTHER DATA
+				$ICANSExpDate   = $user['icans'];
+				$physician_type = $user['physician_type'];
+				$carInsExpDate  = $user['carDate'];
+				$licenseExpDate = $user['licenseDate'];
+				$username       = $user['username'];
+				$userFullName   = $user['fname']." ".$user['mname']." ".$user['lname'];
+				$email          = $user['email'];
+				
+				// OBTAIN THE CURRENT DATE
+				$current_date  = date("Y-m-d");
+				$icans_alert   = date("Y-m-d", strtotime($ICANSExpDate . "-" . $GLOBALS['credential_expiration_alert'] . "days"));
+				$car_alert     = date("Y-m-d", strtotime($carInsExpDate . "-" . $GLOBALS['credential_expiration_alert'] . "days"));
+				$license_alert = date("Y-m-d", strtotime($licenseExpDate . "-" . $GLOBALS['credential_expiration_alert'] . "days"));
+
+				
+				// set parameters
+				if ($this->isICANSRequired($physician_type) and ($icans_alert <= $current_date))
+				{
+					if ($ICANSExpDate == $current_date)
+					{
+						$ICANSExpToday = true;
+					}
+					else if ($icans_alert == $current_date)
+					{
+						$ICANSExpSoon = true;
+					}
+					else
+					{
+						// we a between the two dates
+						$ICANSExpSoon = false;
+						$ICANSExpSoon = false;
+					}
+				}
+				if ($this->isCarInsRequired($physician_type) and ($car_alert <= $current_date)) 
+				{
+					if ($carInsExpDate == $current_date)
+					{
+						$CarInsExpToday = true;
+					}
+					else if ($car_alert == $current_date)
+					{
+						$CarInsExpSoon = true;
+					}
+					else
+					{
+						// we a between the two dates
+						$CarInsExpSoon = false;
+						$CarInsExpSoon = false;
+					}
+				}
+				if ($this->isLicenseRequired($physician_type) and ($license_alert <= $current_date))
+				{
+					if ($licenseExpDate == $current_date)
+					{
+						$licenseExpToday = true;
+					}
+					else if ($license_alert == $current_date)
+					{
+						$licenseExpSoon = true;
+					}
+					else
+					{
+						// we a between the two dates
+						$licenseExpToday = false;
+						$licenseExpSoon = false;
+					}
+				}
+
+				// send email
+				if ($email != '' and ($ICANSExpSoon or $CarInsExpSoon or $LicenseExpSoon or $ICANSExpToday or $CarInsExpToday or $LicenseExpToday))
+				{
+					$body = $this->buildBody($userFullName, $username, 
+										     $ICANSExpDate, $carInsExpDate, $licenseExpDate, 
+										     $ICANSExpSoon, $carInsExpSoon, $licenseExpSoon, 
+										     $ICANSExpToday, $carInsExpToday, $licenseExpToday);
+					$this->sendNotification($body, $email, $userFullName, $subject='Provider Credential Expiration');
+				}
+			}
+		}
+		return;
+	}
+
+	/****************************************
+	 * BUILD BODY
+	 * create the email body
+	 * @param $ICANSExpDate 
+	 * @param $carInsExpDate
+	 * @param $LicenseExpDate
+	 * @param $carInsExpSoon
+	 * @param $ICANSExpSoon 
+	 * @param $LicenseExpSoon
+	 * @param $currentDate
+	 ****************************************/
+    public function buildBody($user, $username, 
+							  $ICANSExpDate, $carInsExpDate, $LicenseExpDate, 
+							  $ICANSExpSoon, $carInsExpSoon, $licenseExpSoon, 
+							  $ICANSExpToday, $carInsExpToday, $licenseExpToday)
+    {
+		// change body text for credential expiration alert
+
+		// standard intro
+        $body = "
+			<body align='center'>
+			<h3>Kuna Counseling Center</h3>
+			<h1 style='background-color:red'>Credential Expiration Alert</h1>
+			<table align='center'>
+				<tr><td>User:   </td><td></td><td>".$user."</td></tr>
+				<tr><td>Usename:</td><td></td><td>".$username."</td></tr>
+			</table>";
+		
+		// check for expiring soon
+		if ($ICANSExpSoon or $carInsExpSoon or $licenseExpSoon)
+		{
+			$body .=
+				"<h4><b><u>Credentials About to Expire</u></b></h4>
+			    <table align='center'>";
+			// ICANS
+			if ($ICANSExpSoon)
+			{
+				$body .= "<tr><td>ICANS:</td><td></td><td>$ICANSExpDate</td></tr>";
+			}
+
+			// Car Ins
+			if ($carInsExpSoon)
+			{
+				$body .= "<tr><td>Car Ins:</td><td></td><td>".$carInsExpDate."</td></tr>";
+			}
+
+			// License
+			if ($licenseExpSoon)
+			{
+				$body .= "<tr><td>License/Credentials:</td><td></td><td>".$LicenseExpDate."</td></tr>";
+			}
+
+			$body .= "</table>";
+		}
+
+		if ($ICANSExpToday or $carInsExpToday or $licenseExpToday) 
+		{
+			$body .=
+				"<h4><b><u>Credentials Expiring Today</u></b></h4>
+			    <table align='center'>";
+
+			// ICANS
+			if ($ICANSExpToday)
+			{
+				$body .= "<tr><td>ICANS</td></tr>";
+			}
+
+			// Car Ins
+			if ($carInsExpToday)
+			{
+				$body .= "<tr><td>Car Ins</td></tr>";
+			}
+
+			// License
+			if ($licenseExpToday)
+			{
+				$body .= "<tr><td>License/Credentials</td></tr>";
+			}
+
+			$body .= "</table>";
+		}
+        
+		$body .= "</body>";
+
+		return $body;
+    }
+
+	/****************************************
+	* IS ICANS REQUIRED
+	* check if ICANS is required for the given
+	* provider
+	****************************************/
+	private function isICANSRequired($providerType) {
+		// obtain lists that require the expirations
+		$num = 20;
+		$sql_limits = 'ASC LIMIT 0, '.escape_limit($num);
+		$list_id = "Provider_Type_ICANs_required";
+		$icansRequired = sqlStatement("SELECT lo.*
+								 FROM list_options AS lo
+								 RIGHT JOIN list_options as lo2 on lo2.option_id = lo.list_id AND lo2.list_id = 'lists' AND lo2.edit_options = 1
+								 WHERE lo.list_id = ? AND lo.edit_options = 1
+								 ORDER BY seq,title ".$sql_limits, array($list_id));
+		
+		// check if provider type in list
+		while($row = sqlFetchArray($icansRequired)) 
+		{
+			if(xl($providerType) == xl($row['option_id']))
+			{
+				return true;
+			}
+		}
+
+		// not in list, return false
+		return false;
+	}
+
+	/****************************************
+	* IS CAR INS REQUIRED
+	* check if CAR INS is required for the given
+	* provider
+	****************************************/
+	private function isCarInsRequired($providerType) {
+		// obtain lists that require the expirations
+		$num = 20;
+		$sql_limits = 'ASC LIMIT 0, '.escape_limit($num);
+		$list_id = "Provider_Type_Car_Ins_required";
+		$carInsRequired = sqlStatement("SELECT lo.*
+								 FROM list_options AS lo
+								 RIGHT JOIN list_options as lo2 on lo2.option_id = lo.list_id AND lo2.list_id = 'lists' AND lo2.edit_options = 1
+								 WHERE lo.list_id = ? AND lo.edit_options = 1
+								 ORDER BY seq,title ".$sql_limits, array($list_id));
+		
+		// check if provider type in list
+		while($row = sqlFetchArray($carInsRequired)) 
+		{
+			if(xl($providerType) == xl($row['option_id']))
+			{
+				return true;
+			}
+		}
+
+		// not in list, return false
+		return false;
+	}
+
+	/****************************************
+	* IS LICENSE REQUIRED
+	* check if LICENSE is required for the given
+	* provider
+	****************************************/
+	private function isLicenseRequired($providerType) {
+		// obtain lists that require the expirations
+		$num = 20;
+		$sql_limits = 'ASC LIMIT 0, '.escape_limit($num);
+		$list_id = "Provider_Type_License_required";
+		$licenseRequired = sqlStatement("SELECT lo.*
+								 FROM list_options AS lo
+								 RIGHT JOIN list_options as lo2 on lo2.option_id = lo.list_id AND lo2.list_id = 'lists' AND lo2.edit_options = 1
+								 WHERE lo.list_id = ? AND lo.edit_options = 1
+								 ORDER BY seq,title ".$sql_limits, array($list_id));
+		
+		// check if provider type in list
+		while($row = sqlFetchArray($licenseRequired)) 
+		{
+			if(xl($providerType) == xl($row['option_id']))
+			{
+				return true;
+			}
+		}
+
+		// not in list, return false
+		return false;
+	}
+
+}

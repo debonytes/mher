@@ -1,0 +1,231 @@
+<?php
+/**
+ * Display a message indicating that one of the user's verious license's have/will expire.
+ * (code copied from pwd_expires_alert.php and altered)
+ *
+ * @package   OpenEMR
+ * @link      http://www.open-emr.org
+ * @author    ViCarePlus Team, Visolve <vicareplus_engg@visolve.com>
+ * @author    Brady Miller <brady.g.miller@gmail.com>
+ * @author    J. Alvin Harris <jalvin.code@gmail.com>
+ * @copyright Copyright (c) 2010 ViCarePlus Team, Visolve <vicareplus_engg@visolve.com>
+ * @copyright Copyright (c) 2018 Brady Miller <brady.g.miller@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
+
+/* 
+ * alert for ICANS, Car Ins, and License Expiration
+ * alert occurs 7 days before expiration
+ * referene with "pwd_expires_alert.php?csrf_token_form=" . attr_url(CsrfUtils::collectCsrfToken()
+ */
+
+require_once("../globals.php");
+
+use OpenEMR\Common\Csrf\CsrfUtils;
+
+if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
+    CsrfUtils::csrfNotVerified();
+}
+
+/****************************************
+* IS ICANS REQUIRED
+* check if ICANS is required for the given
+* provider
+****************************************/
+function isICANSRequired($providerType) {
+	// obtain lists that require the expirations
+	$num = 20;
+	$sql_limits = 'ASC LIMIT 0, '.escape_limit($num);
+	$list_id = "Provider_Type_ICANs_required";
+	$icansRequired = sqlStatement("SELECT lo.*
+							 FROM list_options AS lo
+							 RIGHT JOIN list_options as lo2 on lo2.option_id = lo.list_id AND lo2.list_id = 'lists' AND lo2.edit_options = 1
+							 WHERE lo.list_id = ? AND lo.edit_options = 1
+							 ORDER BY seq,title ".$sql_limits, array($list_id));
+	
+	// check if provider type in list
+	while($row = sqlFetchArray($icansRequired)) 
+	{
+		if(xl($providerType) == xl($row['option_id']))
+			return true;
+	}
+
+	// not in list, return false
+	return false;
+}
+
+/****************************************
+* IS CAR INS REQUIRED
+* check if CAR INS is required for the given
+* provider
+****************************************/
+function isCarInsRequired($providerType) {
+	// obtain lists that require the expirations
+	$num = 20;
+	$sql_limits = 'ASC LIMIT 0, '.escape_limit($num);
+	$list_id = "Provider_Type_Car_Ins_required";
+	$carInsRequired = sqlStatement("SELECT lo.*
+							 FROM list_options AS lo
+							 RIGHT JOIN list_options as lo2 on lo2.option_id = lo.list_id AND lo2.list_id = 'lists' AND lo2.edit_options = 1
+							 WHERE lo.list_id = ? AND lo.edit_options = 1
+							 ORDER BY seq,title ".$sql_limits, array($list_id));
+	
+	// check if provider type in list
+	while($row = sqlFetchArray($carInsRequired)) 
+	{
+		if(xl($providerType) == xl($row['option_id']))
+			return true;
+	}
+
+	// not in list, return false
+	return false;
+}
+
+/****************************************
+* IS LICENSE REQUIRED
+* check if LICENSE is required for the given
+* provider
+****************************************/
+function isLicenseRequired($providerType) {
+	// obtain lists that require the expirations
+	$num = 20;
+	$sql_limits = 'ASC LIMIT 0, '.escape_limit($num);
+	$list_id = "Provider_Type_License_required";
+	$licenseRequired = sqlStatement("SELECT lo.*
+							 FROM list_options AS lo
+							 RIGHT JOIN list_options as lo2 on lo2.option_id = lo.list_id AND lo2.list_id = 'lists' AND lo2.edit_options = 1
+							 WHERE lo.list_id = ? AND lo.edit_options = 1
+							 ORDER BY seq,title ".$sql_limits, array($list_id));
+	
+	// check if provider type in list
+	while($row = sqlFetchArray($licenseRequired)) 
+	{
+		if(xl($providerType) == xl($row['option_id']))
+			return true;
+	}
+
+	// not in list, return false
+	return false;
+}
+
+// OBTAIN ALL EXPIRATION DATES AND OTHER DATA
+$icans_expires = "";
+$car_expires = "";
+$license_expires = "";
+$q = $_SESSION["authUserID"];
+$result = sqlStatement("select username, physician_type, icans, carDate, licenseDate from users where id = ?", array($q));
+if ($row = sqlFetchArray($result)) {
+    $icans_expires   = $row['icans'];
+	$physician_type  = $row['physician_type'];
+    $car_expires     = $row['carDate'];
+    $license_expires = $row['licenseDate'];
+    $username        = $row['username'];
+}
+$case="alertmsg1";
+
+// OBTAIN THE CURRENT DATE
+$current_date  = date("Y-m-d");
+$icans_alert   = date("Y-m-d", strtotime($icans_expires . "-" . $GLOBALS['credential_expiration_alert'] . "days"));
+$car_alert     = date("Y-m-d", strtotime($car_expires . "-" . $GLOBALS['credential_expiration_alert'] . "days"));
+$license_alert = date("Y-m-d", strtotime($license_expires . "-" . $GLOBALS['credential_expiration_alert'] . "days"));
+
+// OBTAIN THE ALERT MESSAGES
+// ICANS
+$msg_alert1 = "";
+if (isICANSRequired($physician_type)) {
+	// Determine the expiration message to display
+	if (($icans_expires == "0000-00-00") or ($icans_expires == "") or (strtotime($icans_expires) < strtotime($current_date))) {
+		$msg_alert1 = xl("Your ICANS has Expired. Please renew.");    
+	}
+	else if (strtotime($icans_expires) == strtotime($current_date)) {
+	  // Display warning if password expires on current day
+		$msg_alert1 = xl("Your ICANS Expires today. Please renew.");
+	} 
+	else if ((strtotime($current_date) >= strtotime($icans_alert)) && strtotime($icans_alert) != "") {
+	  // Display a notice that password expires soon
+		$msg_alert1 = xl("Your ICANS Expires on")." ".$icans_expires.". ".xl("Please renew.");
+	}
+	else {// do nothing
+	}
+	$msg_alert1 .= xl("<br><br>");
+}
+
+// CAR INS
+$msg_alert2 = "";
+if (isCarInsRequired($physician_type)) {
+	// Determine the expiration message to display
+	if (($car_expires == "0000-00-00") or ($car_expires == "") or (strtotime($car_expires) < strtotime($current_date))) {
+		$msg_alert2 = xl("Your Car Insurance has Expired. Please renew.");    
+	}
+	else if (strtotime($car_expires) == strtotime($current_date)) {
+	  // Display warning if expires on current day
+		$msg_alert2 = xl("Your Car Insurance Expires today. Please renew.");
+	} 
+	else if ((strtotime($current_date) >= strtotime($car_alert)) && strtotime($car_alert) != "") {
+	  // Display a notice that password expires soon
+		$msg_alert2 = xl("Your Car Insurance Expires on")." ".$car_expires.". ".xl("Please renew.");
+	}
+	else {// do nothing
+	}
+	$msg_alert2 .= xl("<br><br>");
+}
+
+// LICENSE
+$msg_alert3 = "";
+if (isLicenseRequired($physician_type)) {
+	// Determine the expiration message to display
+	if (($license_expires == "0000-00-00") or ($license_expires == "") or (strtotime($license_expires) < strtotime($current_date))) {
+		$msg_alert3 = xl("Your Provider License/Credentials has Expired. Please renew.");    
+	}
+	else if (strtotime($license_expires) == strtotime($current_date)) {
+	  // Display warning if expires on current day
+		$msg_alert3 = xl("Your Provider License/Credentials Expires today. Please renew.");
+	} 
+	else if ((strtotime($current_date) >= strtotime($license_alert)) && strtotime($license_alert) != "") {
+	  // Display a notice that password expires soon
+		$msg_alert3 = xl("Your Provider License/Credentials Expires on")." ".$license_expires.". ".xl("Please renew.");
+	}
+	else {// do nothing
+	}
+	$msg_alert3 .= xl("<br><br>"); // not necessary, just in case reording is done later
+}
+// END OBTAIN ALERT MESSAGES
+?>
+
+<!-- THE MESSAGE SCREEN -->
+<html>
+<head>
+<meta http-equiv="Content-Language" content="en-us">
+<link rel='stylesheet' href="<?php echo $css_header;?>" type="text/css">
+</head>
+<body class="body_bottom">
+
+<br/><br/><br/><span class="pwdalert <?php echo attr($case); ?>">
+<table align="center" >
+
+  <tr valign="top">
+    <td>&nbsp;</td>
+    <td rowspan="3"><?php echo xlt("Welcome");
+    echo " ".text($username);?>,<br>
+      <br>
+        <?php  echo $msg_alert1;?>
+        <?php  echo $msg_alert2;?>
+        <?php  echo $msg_alert3;?>
+      <br>
+    </td>
+    <td>&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+</table></span>
+
+
+</body>
+</html>
