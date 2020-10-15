@@ -48,10 +48,11 @@ if($userArrs && array_filter($userArrs)) {
 }
 
 $formid = 0 + (isset($_GET['id']) ? $_GET['id'] : 0);
-$data = sqlquery("SELECT ft.* FROM ".$tableName." ft INNER JOIN forms ON ft.id=forms.form_id
-               WHERE forms.deleted=0 AND forms.formdir='".$folderName."'
-               AND forms.encounter=? ORDER BY ft.id DESC",array($encounter));
+// $data = sqlquery("SELECT ft.* FROM ".$tableName." ft INNER JOIN forms ON ft.id=forms.form_id
+//                WHERE forms.deleted=0 AND forms.formdir='".$folderName."'
+//                AND forms.encounter=? ORDER BY ft.id DESC",array($encounter));
 
+$data = '';
 $obj = $data;
 if( isset($obj['user']) && $obj['user'] ) {
   $user_id = $obj['user'];

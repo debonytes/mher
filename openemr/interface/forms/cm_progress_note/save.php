@@ -29,23 +29,15 @@ if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
 
 $encounter = ( isset($_SESSION['encounter']) && $_SESSION['encounter'] ) ? true:false; 
 
-$folderName = 'respite_care_progress_note';
+$folderName = 'cm_progress_note';
 $tableName = 'form_' . $folderName;
-$form_textual_name = 'Respite Care Progress Note';
+$form_textual_name = 'Case Management Progress Note';
 
 $table_fields = sqlListFields($tableName); /* An array of the table fields */
 
 if (!$encounter) { // comes from globals.php
   die(xlt("Internal error: we do not seem to be in an encounter!"));
 }
-
-function cleaning_input($data) { 
-  $data = trim($data); 
-  $data = stripslashes($data); 
-  $data = htmlspecialchars($data); 
-  return $data; 
-} 
-
 
 $id = formData('id', 'G') + 0;
 $sets = '';
@@ -70,7 +62,7 @@ if ($id) {
 				}
 				$comma = ($i>0) ? ', ':'';
 				$sets .= $comma . $field . ' = ?';
-				$fieldValues[] = cleaning_input($val);
+				$fieldValues[] = $val;
 				$i++;
 			}
 		}
@@ -98,7 +90,7 @@ if ($id) {
 					}
 					$comma = ($i>0) ? ', ':'';
 					$sets .= $comma . $field . ' = ?';
-					$fieldValues[] = cleaning_input($val);
+					$fieldValues[] = $val;
 					$i++;
 				}
 			}

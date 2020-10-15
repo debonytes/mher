@@ -15,23 +15,24 @@
 require_once("../../globals.php");
 require_once("$srcdir/api.inc");
 require_once("$srcdir/patient.inc");
-//require_once("date_qualifier_options.php");
 require_once("$srcdir/options.inc.php");
 
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
 
-$folderName = 'cbrs_progress_notes';
+$folderName = 'cm_progress_note';
 $tableName = 'form_' . $folderName;
 
 
 $returnurl = 'encounter_top.php';
 $formid = 0 + (isset($_GET['id']) ? $_GET['id'] : 0);
 $check_res = $formid ? formFetch($tableName, $formid) : array();
+$mileage = ( isset($check_res['mileage']) && $check_res['mileage'] ) ? $check_res['mileage'] : 'T2002';
+$miles = ( isset($check_res['miles']) && $check_res['miles'] ) ? $check_res['miles'] : '';
 ?>
 <html>
     <head>
-        <title><?php echo xlt("CBRS Progress Notes"); ?></title>
+        <title><?php echo xlt("Case Management Progress Note"); ?></title>
 
         <?php Header::setupHeader(['datetime-picker', 'opener']); ?>
         <link rel="stylesheet" href="<?php echo $web_root; ?>/library/css/bootstrap-timepicker.min.css">
@@ -40,7 +41,7 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
         <div class="container">
             <div class="row">
                 <div class="page-header">
-                    <h2><?php echo xlt('CBRS Progress Notes'); ?></h2>
+                    <h2><?php echo xlt('Case Management Progress Note'); ?></h2>
                 </div>
             </div>
             <?php
@@ -88,8 +89,13 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
                 
                     <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
                     <input type="hidden" name="pid" value="<?php echo $pid; ?>">
-                    <fieldset>
-                        <legend class=""><?php echo xlt('CBRS Progress Notes'); ?></legend>
+                    <input type="hidden" name="encounter" value="<?php echo $encounter; ?>">
+                    <input type="hidden" name="user" value="<?php echo $user_id; ?>">
+                    <input type="hidden" name="authorized" value="<?php echo $userauthorized; ?>">
+                    <input type="hidden" name="activity" value="1">
+
+                    <fieldset style="padding-top: 20px!important;">
+                       <!--  <legend class=""><?php //echo xlt('Case Management Progress Note'); ?></legend> -->
                             <!--
                             <div class="form-group">
                                 <div class="col-sm-10 col-sm-offset-1">
@@ -109,17 +115,31 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
                                     </div>                                    
                                 </div>
                                 <div class="form-group">
-                                    <label for="cbrs" class="col-sm-3 "><?php echo xlt('CBRS'); ?></label>
+                                    <label for="provider_id" class="col-sm-3 "><?php echo xlt('Case Manager'); ?></label>
                                     <div class="col-sm-9">
-                                        <input type="text" name="cbrs" id="cbrs" class="form-control" value="<?php echo text($check_res['cbrs']); ?>">
+                                        <input type="text" name="provider_id" id="provider_id" class="form-control" value="<?php echo text($check_res['provider_id']); ?>">
                                         <small class="text-danger cbrs_error"></small>
                                     </div>                                    
                                 </div>
                                 <div class="form-group">
                                     <label for="" class="col-sm-3 "><?php echo xlt('Billing Code'); ?></label>
                                     <div class="col-sm-9">
-                                        <input type="text"  class="form-control" value="H2017-CBRS" readonly>
-                                        <input type="hidden" name="billing_code" value="H2017-CBRS">
+                                        <input type="text"  class="form-control" value="T1017 HN-CM" readonly>
+                                        <input type="hidden" name="billing_code" value="T1017 HN-CM">
+                                    </div>                                    
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="mileage" class="col-sm-3 "><?php echo xlt('Mileage'); ?></label>
+                                    <div class="col-sm-9">
+                                        <input type="text" name="mileage" value="<?php echo text($mileage); ?>">
+                                    </div>                                    
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="miles" class="col-sm-3 "><?php echo xlt('Miles'); ?></label>
+                                    <div class="col-sm-9">
+                                        <input type="text" name="miles" value="<?php echo text($miles); ?>">
                                     </div>                                    
                                 </div>
                             </div>
@@ -127,7 +147,7 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
                                 <div class="form-group">
                                     <label for="" class="col-sm-3 "><?php echo xlt('Date of Service'); ?></label>
                                     <div class="col-sm-9">
-                                        <input type="text" name="date" id="date" class="form-control datepicker" value="<?php echo text($check_res['date']); ?>" autocomplete="off">
+                                        <input type="text" name="dateofservice" id="dateofservice" class="form-control datepicker" value="<?php echo text($check_res['dateofservice']); ?>" autocomplete="off">
                                         <small class="text-danger date_error"></small>
                                     </div>                                    
                                 </div>
@@ -157,9 +177,9 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
                                 </div>
                             </div>
 
-                            <div class="clearfix"></div>
+                            <div class="clearfix" style="width:100%;float:left;margin:20px 0 0"></div>
 
-                            <div class="col-md-12 margin-top-20" >
+                            <div class="col-md-12 margin-top-40" >
                                 <div class="form-group">
                                     <label for="" class="col-sm-4 ">
                                         <?php echo xlt('(N) State where the services took place:'); ?>
@@ -193,13 +213,13 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
 
                             <div class="clearfix"></div>
 
-                            <div class="col-md-12 margin-top-20" >
+                            <div class="col-md-12" style="margin-top:20px">
                                 <p>
                                     <?php echo xlt('(A) State the goals and tasks set at the beginning of services for the client. You will not always work on all of them at each date of service.'); ?>
                                 </p>
 
                                 <div class="form-group margin-top-20">
-                                    <label for="" class="col-sm-2 control-label"><strong><?php echo xlt('Objective 1.1 (H2017):'); ?></strong></label>
+                                    <label for="" class="col-sm-2 control-label"><strong><?php echo xlt('Objective 1.1 (T1016):'); ?></strong></label>
                                     <div class="col-sm-6">
                                         <input type="text" class="form-control " name="goals_object_1" id="goals_object_1" style="width: 250px; float: left; margin-right: 20px" value="<?php echo text($check_res['goals_object_1']); ?>">
                                         <small class="text-danger goals_object_1_error" style="height: 24px; line-height: 24px;"></small>
@@ -232,7 +252,7 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
                                 <div class="clearfix "></div>
 
                                 <div class="form-group margin-top-20">
-                                    <label for="" class="col-sm-2 control-label"><strong><?php echo xlt('Objective 2.1 (H2017):'); ?></strong></label>
+                                    <label for="" class="col-sm-2 control-label"><strong><?php echo xlt('Objective 2.1 (T1016):'); ?></strong></label>
                                     <div class="col-sm-6">
                                         <input type="text" class="form-control" name="goals_object_2" id="goals_object_2" style="width: 250px; float: left; margin-right: 20px" value="<?php echo text($check_res['goals_object_2']); ?>">
                                         <small class="text-danger goals_object_2_error" style="height: 24px; line-height: 24px;"></small>
@@ -265,7 +285,7 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
                                 <div class="clearfix "></div>
 
                                 <div class="form-group margin-top-20">
-                                    <label for="" class="col-sm-2 control-label"><strong><?php echo xlt('Objective 3.1 (H2017):'); ?></strong></label>
+                                    <label for="" class="col-sm-2 control-label"><strong><?php echo xlt('Objective 3.1 (T1016):'); ?></strong></label>
                                     <div class="col-sm-6">
                                         <input type="text" class="form-control" name="goals_object_3" id="goals_object_3" style="width: 250px; float: left; margin-right: 20px" value="<?php echo text($check_res['goals_object_3']); ?>">
                                         <small class="text-danger goals_object_3_error" style="height: 24px; line-height: 24px;"></small>
@@ -364,46 +384,6 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
                   defaultTime: null
                 });
 
-                //$('#endtime').timepicker();
-
-                $('#endtime').on('changeTime', function(){
-
-                    //if($(this).attr('id') == 'endtime'){
-
-                        var endtime = $(this).val();
-                        var starttime = $('#starttime').val(); 
-
-                        var today = "<?php echo date('F j, Y'); ?>";
-                        console.log('Today: ' + today);
-
-                        if(starttime == ''){
-                            alert('Please enter the Start time.');
-                            return false;
-                        }
-
-                        var stt = new Date(today + starttime);
-                        stt = stt.getTime();
-
-                        var endt = new Date(today + endtime);
-                        endt = endt.getTime();
-
-                        console.log("Time1: "+ stt + " Time2: " + endt);
-
-                        if(stt > endt) {
-                            $(".starttime_error").text('Start-time must be smaller then End-time.');
-                            $(".endtime_error").text('End-time must be bigger then Start-time.');
-                            //return false;
-                        } else {
-                            $(".starttime_error").text('');
-                            $(".endtime_error").text('');
-                        }
-
-                    //} // endtime
-                    
-                });
-                
-
-                
 
                 $('.datepicker').datetimepicker({
                   <?php $datetimepicker_timepicker = false; ?>
@@ -411,205 +391,6 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
                   <?php $datetimepicker_formatInput = false; ?>
                   <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                   <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
-                });
-
-                $('.btn-save').on('click', function(e){
-                    e.preventDefault();
-
-                    var errors = false;
-
-                    var cbrs = $('#cbrs').val();
-                    if(cbrs == ''){
-                        $('.cbrs_error').text('Please enter your cbrs.');   
-                        errors = true;                     
-                    } else {
-                        $('.cbrs_error').text('');
-                        errors = false;
-                    }
-
-                    var date = $('#date').val();
-                    if(date == ''){
-                        $('.date_error').text('Please enter your date.');  
-                        errors = true;                      
-                    } else {
-                        $('.date_error').text('');
-                        errors = false;
-                    }
-
-                    var starttime = $('#starttime').val();
-                    if(starttime == ''){
-                        $('.starttime_error').text('Please enter your start time.');      
-                        errors = true;                  
-                    } else {
-                        $('.starttime_error').text('');
-                        errors = false;
-                    }
-
-                    var endtime = $('#endtime').val();
-                    if(endtime == ''){
-                        $('.endtime_error').text('Please enter your end time.'); 
-                        errors = true;                       
-                    } else {
-                        $('.endtime_error').text('');
-                        errors = false;
-                    }
-
-                    /*
-                    var duration = $('#duration').val();
-                    if(duration == ''){
-                        $('.duration_error').text('Please enter your duration.');    
-                        errors = true;                    
-                    } else {
-                        $('.duration_error').text('');
-                        errors = false;
-                    }
-                    */
-
-                    var services_place1 = $('#services_place1').prop('checked');
-                    var services_place2 = $('#services_place2').prop('checked');
-                    if((services_place1 == '') && (services_place2 == '') ){
-                        $('.services_place_error').text('Please enter your Service Place.');
-                        errors = true;
-                    } else {
-                        $('.services_place_error').text('');
-                        errors = false;
-                    }
-
-                    var services_with1 = $('#services_with1').prop('checked');
-                    var services_with2 = $('#services_with2').prop('checked');
-                    if((services_with1 == '') && (services_with2 == '') ){
-                        $('.services_with_error').text('Please enter your Service With.');
-                        errors = true;
-                    } else {
-                        $('.services_with_error').text('');
-                        errors = false;
-                    }
-
-
-                    /*
-                    var goals_object_1 = $('#goals_object_1').val();
-                    if(goals_object_1 == ''){
-                        $('.goals_object_1_error').text('Please enter your Objective 1.1.');
-                        errors = true;                        
-                    } else {
-                        $('.goals_object_1_error').text(''); 
-                        errors = false;
-                    }
-                    */
-
-                    var goals_object_1a = $('#goals_object_1a').prop('checked');
-                    var goals_object_1b = $('#goals_object_1b').prop('checked');
-                    var goals_object_1c = $('#goals_object_1c').prop('checked');
-                    var goals_object_1d = $('#goals_object_1d').prop('checked');
-                    var goals_object_1e = $('#goals_object_1e').prop('checked');
-                    if(!(goals_object_1a) && !(goals_object_1b) && !(goals_object_1c) && !(goals_object_1d) && !(goals_object_1e)){
-                        $('.goals_object_1_status_error').text('Please select one of the Objectives 1.1.');
-                        errors = true;
-                    } else {
-                        $('.goals_object_1_status_error').text('');
-                        errors = false;
-                    }
-
-                    var goals_object_2a = $('#goals_object_2a').prop('checked');
-                    var goals_object_2b = $('#goals_object_2b').prop('checked');
-                    var goals_object_2c = $('#goals_object_2c').prop('checked');
-                    var goals_object_2d = $('#goals_object_2d').prop('checked');
-                    var goals_object_2e = $('#goals_object_2e').prop('checked');
-                    if(!(goals_object_2a) && !(goals_object_2b) && !(goals_object_2c) && !(goals_object_2d) && !(goals_object_2e)){
-                        $('.goals_object_2_status_error').text('Please select one of the Objectives 2.1.');
-                        errors = true;
-                    } else {
-                        $('.goals_object_2_status_error').text('');
-                        errors = false;
-                    }
-
-                    var goals_object_3a = $('#goals_object_3a').prop('checked');
-                    var goals_object_3b = $('#goals_object_3b').prop('checked');
-                    var goals_object_3c = $('#goals_object_3c').prop('checked');
-                    var goals_object_3d = $('#goals_object_3d').prop('checked');
-                    var goals_object_3e = $('#goals_object_3e').prop('checked');
-                    if(!(goals_object_3a) && !(goals_object_3b) && !(goals_object_3c) && !(goals_object_3d) && !(goals_object_3e)){
-                        $('.goals_object_3_status_error').text('Please select one of the Objectives 3.1.');
-                        errors = true;
-                    } else {
-                        $('.goals_object_3_status_error').text('');
-                        errors = false;
-                    }
-                    
-                    /*
-                    var goals_object_2 = $('#goals_object_2').val();
-                    if(goals_object_2 == ''){
-                        $('.goals_object_2_error').text('Please enter your Objective 2.1.');
-                        errors = true;                        
-                    } else {
-                        $('.goals_object_2_error').text(''); 
-                        errors = false;
-                    }
-                    //var goals_object_2_status = $('#goals_object_2_status').val();
-                    var goals_object_3 = $('#goals_object_3').val();
-                    if(goals_object_3 == ''){
-                        $('.goals_object_3_error').text('Please enter your Objective 3.1.');
-                        errors = true;                        
-                    } else {
-                        $('.goals_object_3_error').text(''); 
-                        errors = false;
-                    }
-                    //var goals_object_3_status = $('#goals_object_3_status').val();
-                    */
-
-                    var narrative_services = $('#narrative_services').val();
-                    if(narrative_services == ''){
-                        $('.narrative_services_error').text('Please enter your Narrative Service.');
-                        errors = true;
-                    } else {
-                        $('.narrative_services_error').text('');
-                        errors = false;
-                    }
-                    var meet_again_date = $('#meet_again_date').val();
-                    if(meet_again_date == ''){
-                        $('.meet_again_date_error').text('Please enter your date to meet again.');
-                        errors = true;
-                    } else {
-                        $('.meet_again_date_error').text('');
-                        errors = false;
-                    }
-                    var meet_again_time = $('#meet_again_time').val();
-                    if(meet_again_time == ''){
-                        $('.meet_again_time_error').text('Please enter your time of meeting again.');
-                        errors = true;
-                    } else {
-                        $('.meet_again_time_error').text('');
-                        errors = false;
-                    }
-                    var work_on = $('#work_on').val();
-                    if(work_on == ''){
-                        $('.work_on_error').text('Please enter your Work On.');
-                        errors = true;
-                    } else {
-                        $('.work_on_error').text('');
-                        errors = false;
-                    }
-
-                    if(errors){
-                        return;
-                    }                    
-
-                    top.restoreSession();
-
-                    $.ajax({
-                        url: "<?php echo $rootdir; ?>/forms/cbrs_progress_notes/save.php?id=<?php echo attr_url($formid); ?>",
-                        type: 'POST',
-                        data: $('form#my_progress_notes_form').serialize(),
-                        success: function(response){
-                            //console.log(response);
-                            //window.location.reload();
-                            window.location.href = "<?php echo $rootdir; ?>/forms/cbrs_progress_notes/redirect.php";
-                        },
-                        errors: function(response){
-                            //console.log(response);
-                        }
-                    });
-
                 });
 
                 var today = new Date();

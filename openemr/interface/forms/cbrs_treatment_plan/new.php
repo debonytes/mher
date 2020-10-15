@@ -49,6 +49,7 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
 
             $patient_id = ( isset($_SESSION['alert_notify_pid']) && $_SESSION['alert_notify_pid'] ) ? $_SESSION['alert_notify_pid'] : '';
             $pid = ( isset($_SESSION['pid']) && $_SESSION['pid'] ) ? $_SESSION['pid'] : 0;
+            $patient_full_name = '';
             if($patient_id) {
               $patient = getPatientData($patient_id);
               $patient_fname = ( isset($patient['fname']) && $patient['fname'] ) ? $patient['fname'] : '';
@@ -59,6 +60,15 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
                 $patient_full_name = implode( ' ', array_filter($patientInfo) );
               }
             }
+            $patient_DOB = ( isset($patient['DOB']) && $patient['DOB'] ) ? $patient['DOB'] : '';
+            $patient_Age = '';
+            if($patient_DOB) {
+                $dob = strtotime($patient_DOB);       
+                $tdate = time();
+                $patient_Age = date('Y', $tdate) - date('Y', $dob);
+            }
+            
+
 
             $progress_codes = [
                 0 => 'Select',
@@ -115,7 +125,8 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
                                     <div class="form-group">
                                         <label for="participant_name" class="col-sm-4 "><?php echo xlt('Participant Name'); ?></label>
                                         <div class="col-sm-8">
-                                          <input type="text" class="form-control" id="participant_name" name="participant_name" value="<?php echo text($check_res['participant_name']); ?>">
+                                            <input type="text" class="form-control" readonly value="<?php echo text($patient_full_name); ?>">
+                                            <input type="hidden" class="form-control" id="participant_name" name="participant_name" value="<?php echo text($patient_full_name); ?>">
                                           <small class="text-danger participant_name_error"></small>
                                         </div>
                                     </div>
@@ -133,7 +144,7 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
                                     <div class="form-group">
                                         <label for="date_birth" class="col-sm-2"><?php echo xlt('DOB'); ?></label>
                                         <div class="col-sm-10">
-                                          <input type="text" class="form-control datepicker" id="date_birth" name="date_birth" autocomplete="off" value="<?php echo text($check_res['date_birth']); ?>">
+                                          <input type="text" class="form-control datepicker" id="date_birth" name="date_birth" autocomplete="off" value="<?php echo text($patient_DOB); ?>">
                                           <small class="text-danger date_birth_error"></small>
                                         </div>
                                     </div>
@@ -142,7 +153,7 @@ $check_res = $formid ? formFetch($tableName, $formid) : array();
                                     <div class="form-group">
                                         <label for="age" class="col-sm-2"><?php echo xlt('Age'); ?></label>
                                         <div class="col-sm-10">
-                                          <input type="text" class="form-control" id="age" name="age" value="<?php echo text($check_res['age']); ?>">
+                                          <input type="text" class="form-control" id="age" name="age" value="<?php echo text($patient_Age); ?>">
                                           <small class="text-danger age_error"></small>
                                         </div>
                                     </div>

@@ -15,10 +15,10 @@
 require_once(dirname(__FILE__).'/../../globals.php');
 require_once($GLOBALS["srcdir"]."/api.inc");
 
-function cbrs_progress_notes_report($pid, $encounter, $cols, $id)
+function cbrs_treatment_plan_report($pid, $encounter, $cols, $id)
 {
     $count = 0;
-    $data = formFetch("form_cbrs_progress_notes", $id);
+    $data = formFetch("form_cbrs_treatment_plan", $id);
     if ($data) {
         ?>
         <table style='border-collapse:collapse;border-spacing:0;width: 100%;'>

@@ -1,3 +1,5 @@
+RENAME TABLE `form_respite_care_progress_note` TO `form_respite_care_progress_note_BAK`;
+
 CREATE TABLE IF NOT EXISTS `form_respite_care_progress_note` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `date` datetime DEFAULT NULL,
